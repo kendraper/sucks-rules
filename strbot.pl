@@ -5,18 +5,17 @@ use Mojolicious::Lite;
 use DBI;
 
 use v5.18;
-use experimental qw/switch/;
+use experimental qw/smartmatch switch/;
 
-my $token = read_file("TOKEN");
-chomp $token;
+my @tokens = map { chomp; $_ } read_file("TOKENS");
 
 my $database_file = "stuff.db";
 
 post '/slackbot' => sub {
-    my $c   = shift;
-    my $t   = $c->param('token');
+    my $c = shift;
+    my $t = $c->param('token');
 
-    if ($t ne $token) {
+    unless ($t ~~ @tokens) {
         $c->render(text => 'denied',status => 403);
         return;
     }
@@ -37,6 +36,9 @@ sub main_handler {
     my $domain  = $c->param('team_domain');
     my $user    = $c->param('user_name');
 
+    # New: support for a slash command.
+    my $command = $c->param('command');
+    
     # Remove leading trigger and whitespace from sts/str text.
     # Do not assume $trigger is safe, substitute only known trigger words.
     my @triggers = qw(sts- sts: str- str:);
@@ -55,7 +57,21 @@ sub main_handler {
         when (/^str[:\-]/i) {
             add_rules($c, $text, $channel, $domain, $user);
         }
-        default { return }
+    }
+
+    # TODO:
+    # NOTIMPLEMENTED: /sts and /str slash commands (different integration)
+    given ($command) {
+        when (m{^/sts}i) {
+            $c->render(
+                text => "Ooh, fancy! A slash command for stuff that sucks!",
+            );
+        }
+        when (m{^/str}i) {
+            $c->render(
+                text => "Ooh, fancy! A slash command for stuff that rules!",
+            );
+        }
     }
 }
 
@@ -80,7 +96,11 @@ sub say_random {
     my ($msg, $user) = $sth->fetchrow_array();
 
     if ($msg eq "") {
-        $c->render(json => {text => "it hurts when you tease me, I don't have any data :weary:"});
+        $c->render(
+            json => {
+                text => "it hurts when you tease me, I don't have any data :weary:",
+            }
+        );
         return;
     }
 
@@ -90,14 +110,20 @@ sub say_random {
     $emoji = ':no_good:'      if $table eq "sucks";
 
     if ($user eq "") {
-        $c->render(json => {text => $msg, icon_emoji => $emoji, username => "stuff that $table"});
+        $c->render(
+            json => {
+                text => $msg,
+                icon_emoji => $emoji,
+                username => "stuff that $table",
+            }
+        );
     }
     else {
         $c->render(
             json => {
                 text => $msg . " _(submitted by " . $user . ")_",
                 icon_emoji => $emoji,
-                username => "stuff that $table"
+                username => "stuff that $table",
             }
         );
     }
@@ -127,7 +153,11 @@ sub insert_record {
     $dbh->commit;
     $dbh->disconnect;
 
-    $c->render(json => {text => "I'm gently placing your message in the $table basket as we speak. I love you, " . $user . "!"});
+    $c->render(
+        json => {
+            text => "You know what? I think that $table, too! Saved.",
+        }
+    );
 }
 
 sub connect_database {
