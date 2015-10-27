@@ -4,7 +4,7 @@ CREATE TABLE sucks (
     user text,
     channel text,
     domain text,
-    date integer
+    date datetime
 );
 
 CREATE TABLE rules (
@@ -13,5 +13,5 @@ CREATE TABLE rules (
     user text,
     channel text,
     domain text,
-    date integer
+    date datetime
 );
