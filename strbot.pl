@@ -106,7 +106,7 @@ sub say_random {
 
     # Set icon emoji to match "sucks" or "rules".
     my $emoji;
-    $emoji = ':raised_hands:' if $table eq "rules";
+    $emoji = ':+1:' if $table eq "rules";
     $emoji = ':no_good:'      if $table eq "sucks";
 
     if ($user eq "") {
